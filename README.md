@@ -14,7 +14,7 @@ Make sure you are using a Debian-based Linux distribution (like Ubuntu). Install
 sudo apt update
 sudo apt install libglew-dev libglfw3-dev freeglut3-dev libsoil-dev libglm-dev
 ```
-````
+
 
 ## 📁 Project Structure
 
