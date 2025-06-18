@@ -1,0 +1,53 @@
+5
+menu.png
+3
+-27.33 -51.80
+6.10 -35.6
+efeito_mouse_ajuda.png
+1
+-27.33 -12.10
+6.10 3.5
+efeito_mouse_iniciar.png
+2
+70.33 82.33 
+93.66 93.66
+efeito_mouse_sair.png
+-1
+ajuda.png
+1
+72.33 -96.33 
+95.0 -86.33
+efeito_mouse_voltar1.png
+0
+mapa1.png
+2
+-82.33 55.66
+-64.33 75.66
+efeito_mouse_fase1.png
+-2
+72.33 -96.33 
+95.0 -86.33
+efeito_mouse_voltar2.png
+0
+mapa2.png
+2
+-44.33 -27
+-25.66 -6
+efeito_mouse_fase2.png
+-3
+72.33 -96.33
+95.0 -86.33
+efeito_mouse_voltar3.png
+0
+mapa3.png
+2
+19.33 -58
+38.0 -37.66
+efeito_mouse_fase3.png
+-4
+72.33 -96.33
+95.0 -86.33
+efeito_mouse_voltar4.png
+0
+
+
