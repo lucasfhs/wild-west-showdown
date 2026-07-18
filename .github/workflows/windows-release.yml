@@ -1,0 +1,117 @@
+name: Release do Windows
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    name: Compilar e publicar
+    runs-on: windows-latest
+
+    steps:
+      - name: Configurar finais de linha do Git
+        shell: pwsh
+        run: git config --global core.autocrlf input
+
+      - name: Baixar o codigo
+        uses: actions/checkout@v6
+
+      - name: Preparar o compilador e as bibliotecas
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          cache: true
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-binutils
+            mingw-w64-ucrt-x86_64-freeglut
+            mingw-w64-ucrt-x86_64-glew
+            mingw-w64-ucrt-x86_64-soil
+            mingw-w64-ucrt-x86_64-imagemagick
+            zip
+
+      - name: Gerar o icone e compilar o jogo
+        shell: msys2 {0}
+        run: |
+          set -euo pipefail
+
+          project_dir="Wild West Showdown"
+          build_dir="$project_dir/build/windows"
+          package_dir="$PWD/dist/Wild-West-Showdown-Windows-x64"
+
+          mkdir -p "$build_dir" "$package_dir"
+
+          # O sprite tem quadros de 50x55. Este recorte usa uma pose frontal
+          # e o filtro point mantem o visual pixel art ao ampliar a imagem.
+          magick "$project_dir/texturas/jogador.png" \
+            -crop 50x55+50+0 +repage \
+            -filter point -resize 220x242 \
+            -background none -gravity center -extent 256x256 \
+            -define icon:auto-resize=256,128,64,48,32,16 \
+            "$build_dir/app.ico"
+
+          (
+            cd "$build_dir"
+            windres ../../windows-resource.rc -O coff -o app-icon.o
+          )
+
+          mapfile -d '' sources < <(find "$project_dir" -maxdepth 1 -name '*.cpp' -print0)
+          g++ -std=c++11 -O2 -mwindows \
+            "${sources[@]}" "$build_dir/app-icon.o" \
+            -o "$package_dir/WildWestShowdown.exe" \
+            -lfreeglut -lglew32 -lSOIL -lopengl32 -lglu32 -lgdi32 -lwinmm \
+            -static-libgcc -static-libstdc++
+
+          cp -r "$project_dir/texturas" "$package_dir/texturas"
+          cp "$project_dir"/carregar_* "$package_dir/"
+          cp "$project_dir/fases_menu" "$package_dir/"
+
+          # FreeGLUT e GLEW sao dinamicas no MSYS2; as DLLs seguem junto do EXE.
+          cp /ucrt64/bin/libfreeglut.dll "$package_dir/"
+          cp /ucrt64/bin/glew32.dll "$package_dir/"
+
+          # Falha o build se o recurso de icone nao tiver sido incorporado.
+          objdump -h "$package_dir/WildWestShowdown.exe" | grep -q '\.rsrc'
+
+          (
+            cd dist
+            sha256sum Wild-West-Showdown-Windows-x64/WildWestShowdown.exe > SHA256SUMS.txt
+            zip -9 -r Wild-West-Showdown-Windows-x64.zip Wild-West-Showdown-Windows-x64
+          )
+
+      - name: Definir os dados da release
+        id: release
+        shell: msys2 {0}
+        run: |
+          short_sha="${GITHUB_SHA:0:7}"
+          echo "tag=windows-${GITHUB_RUN_NUMBER}-${short_sha}" >> "$GITHUB_OUTPUT"
+
+      - name: Publicar a release no GitHub
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.release.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: Wild West Showdown para Windows (${{ steps.release.outputs.tag }})
+          body: |
+            Build automatico para Windows 64 bits.
+
+            Baixe `Wild-West-Showdown-Windows-x64.zip`, extraia todo o conteudo e execute `WildWestShowdown.exe`.
+
+            Commit: `${{ github.sha }}`
+          generate_release_notes: true
+          make_latest: true
+          files: |
+            dist/Wild-West-Showdown-Windows-x64.zip
+            dist/SHA256SUMS.txt
+          fail_on_unmatched_files: true

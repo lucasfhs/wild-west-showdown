@@ -69,5 +69,13 @@ make limpar
 
 For more information, see the `readme.txt` file inside the `/Wild West Showdown/` directory (written in Portuguese).
 
-```
+## Windows releases
+
+Cada commit enviado para a branch `main` inicia a pipeline **Release do Windows**.
+Ela compila o jogo para Windows 64 bits, incorpora ao executavel um icone criado
+a partir do sprite do personagem principal e publica uma nova GitHub Release.
+
+Para jogar, baixe `Wild-West-Showdown-Windows-x64.zip` na release mais recente,
+extraia todo o conteudo e execute `WildWestShowdown.exe`. A pasta `texturas` e as
+DLLs incluidas precisam permanecer ao lado do executavel.
 
