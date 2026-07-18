@@ -38,6 +38,7 @@ jobs:
             mingw-w64-ucrt-x86_64-freeglut
             mingw-w64-ucrt-x86_64-glew
             mingw-w64-ucrt-x86_64-soil
+            mingw-w64-ucrt-x86_64-libwinpthread
             mingw-w64-ucrt-x86_64-imagemagick
             zip
 
@@ -77,9 +78,38 @@ jobs:
           cp "$project_dir"/carregar_* "$package_dir/"
           cp "$project_dir/fases_menu" "$package_dir/"
 
-          # FreeGLUT e GLEW sao dinamicas no MSYS2; as DLLs seguem junto do EXE.
-          cp /ucrt64/bin/libfreeglut.dll "$package_dir/"
-          cp /ucrt64/bin/glew32.dll "$package_dir/"
+          # Copia recursivamente todas as dependencias fornecidas pelo MinGW.
+          # DLLs do proprio Windows nao existem em /ucrt64/bin e sao ignoradas.
+          dependencies=("$package_dir/WildWestShowdown.exe")
+          declare -A inspected=()
+          dependency_index=0
+
+          while (( dependency_index < ${#dependencies[@]} )); do
+            binary="${dependencies[$dependency_index]}"
+            dependency_index=$((dependency_index + 1))
+
+            if [[ -n "${inspected[$binary]:-}" ]]; then
+              continue
+            fi
+            inspected["$binary"]=1
+
+            while IFS= read -r dll; do
+              dll="${dll//$'\r'/}"
+              packaged_dll="$package_dir/$dll"
+              mingw_dll="/ucrt64/bin/$dll"
+
+              if [[ -f "$packaged_dll" ]]; then
+                dependencies+=("$packaged_dll")
+              elif [[ -f "$mingw_dll" ]]; then
+                cp "$mingw_dll" "$packaged_dll"
+                dependencies+=("$packaged_dll")
+              fi
+            done < <(objdump -p "$binary" | sed -n 's/^[[:space:]]*DLL Name: //p')
+          done
+
+          # Esta DLL e necessaria ao runtime UCRT64. A release nao pode ser
+          # publicada se ela deixar de ser detectada ou copiada.
+          test -f "$package_dir/libwinpthread-1.dll"
 
           # Falha o build se o recurso de icone nao tiver sido incorporado.
           objdump -h "$package_dir/WildWestShowdown.exe" | grep -q '\.rsrc'
