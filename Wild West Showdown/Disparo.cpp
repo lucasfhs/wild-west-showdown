@@ -1,11 +1,20 @@
 #include "Disparo.hpp"
 
-Disparo::Disparo(bool disparou) : disparou(disparou)
+Disparo::Disparo(bool disparou)
+    : disparoX(0.0),
+      disparoY(0.0),
+      disparou(disparou),
+      idTexturaBala(0),
+      idTexturaCanhao(0),
+      idTexturaMachado(0),
+      nomeDoArquivoBala("texturas/bala.png"),
+      nomeDoArquivoCanhao("texturas/balacanhao.png"),
+      nomeDoArquivoMachado("texturas/machado.png"),
+      tamanhoDaBala(4),
+      DisplayListBala(0),
+      DisplayListMachado(0),
+      DisplayListCanhao(0)
 {
-    /*Define o nome do arquivo da textura*/
-    this->nomeDoArquivoBala = "texturas/bala.png";
-    this->nomeDoArquivoCanhao = "texturas/balacanhao.png";
-    this->nomeDoArquivoMachado = "texturas/machado.png";
     /*Carrega todas as texturas*/
     this->carregaTexturas();
     /*Cria a display list*/  
@@ -35,16 +44,32 @@ void Disparo::setDisparoY(double y)
 
 void Disparo::criaDisplayList()
 {
+    /*
+     * glNewList nao cria um identificador: ele exige um nome previamente
+     * reservado por glGenLists. Usar os membros sem inicializa-los fazia o
+     * desenho depender de valores indefinidos, especialmente na build -O2.
+     */
+    GLuint primeiraLista = glGenLists(3);
+    if (primeiraLista == 0)
+    {
+        std::cerr << "Nao foi possivel criar as display lists dos disparos." << std::endl;
+        return;
+    }
+
+    this->DisplayListBala = primeiraLista;
+    this->DisplayListCanhao = primeiraLista + 1;
+    this->DisplayListMachado = primeiraLista + 2;
+
     /*Cria as display list para as balas*/
-    glNewList(DisplayListBala, GL_COMPILE);
+    glNewList(this->DisplayListBala, GL_COMPILE);
     desenhaTiroParaDl();
     glEndList();
 
-    glNewList(DisplayListCanhao, GL_COMPILE);
+    glNewList(this->DisplayListCanhao, GL_COMPILE);
     desenhaCanhaoParaDl();
     glEndList();
 
-    glNewList(DisplayListMachado, GL_COMPILE);
+    glNewList(this->DisplayListMachado, GL_COMPILE);
     desenhaMachadoParaDl();
     glEndList();
 }
